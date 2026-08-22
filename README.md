@@ -114,8 +114,11 @@ Manager. Autorize e o push continua sozinho.
 2. **New → Blueprint**, escolha o repositório.
 3. O Render lê o `render.yaml` da raiz sozinho: build, start e health check já estão
    configurados. Clique em **Apply**.
-4. Ao terminar, copie a URL gerada, algo como
-   `https://screenshare-signaling.onrender.com`.
+4. Ao terminar, copie a URL que aparece **no topo da página do serviço** no painel do
+   Render. Atenção: se o nome `screenshare-signaling` já estiver em uso por outra
+   pessoa, o Render gera um endereço diferente, com sufixo aleatório
+   (`screenshare-signaling-a1b2.onrender.com`). Use sempre a URL do painel, nunca a
+   do exemplo.
 
 Teste abrindo `SUA-URL/health` no navegador. Deve responder:
 
@@ -128,7 +131,7 @@ Teste abrindo `SUA-URL/health` no navegador. Deve responder:
 Crie o arquivo `client/.env.production` (há um `.env.production.example` de modelo):
 
 ```
-VITE_SERVER_URL=https://screenshare-signaling.onrender.com
+VITE_SERVER_URL=https://cole-aqui-sua-url.onrender.com
 ```
 
 Gere o executável:
