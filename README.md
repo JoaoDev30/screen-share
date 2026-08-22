@@ -165,13 +165,24 @@ link **Servidor: localhost:3001** na tela inicial e trocam pelo IP dele.
 netsh advfirewall firewall add rule name="ScreenShare" dir=in action=allow protocol=TCP localport=3001
 ```
 
-### Limites da versão atual
+### Áudio
 
-Esta build está na ETAPA 4. Ainda **não tem**:
+- **Áudio da tela**: capturado junto com a imagem, via `loopback` do Electron. Se a
+  fonte escolhida não fornecer áudio, o botão aparece indisponível.
+- **Microfone**: desligado por padrão. Ligar abre o microfone e envia; desligar
+  **remove a trilha**, não apenas muta — mutando, o sistema operacional continuaria
+  com o microfone aberto.
+- A voz de cada um toca independentemente de quem está no vídeo principal, e as
+  miniaturas são sempre mudas.
 
-- áudio (nem do sistema, nem microfone) — ETAPA 6
-Várias transmissões simultâneas já funcionam: aparecem miniaturas e clicar troca o
-vídeo principal.
+### Qualidade
+
+Vídeo limitado a 2,5 Mbps e 30 FPS, com `degradationPreference: maintain-framerate`:
+sob banda apertada o WebRTC derruba a resolução e segura os quadros, em vez de travar
+a imagem. Áudio em até 128 kbps, sem cancelamento de eco nem ganho automático no som
+do sistema — esses tratamentos são para voz e estragariam música e jogo.
+
+### Limite conhecido
 
 A transmissão é P2P direta e só há STUN configurado. Em algumas operadoras (NAT
 simétrico, CGNAT) o P2P não fecha e seria preciso um servidor TURN, que este projeto
@@ -196,4 +207,4 @@ screen-share-app/
 - [x] ETAPA 3 — WebRTC: SDP, ICE, conexão P2P
 - [x] ETAPA 4 — compartilhamento de tela (getDisplayMedia) e recepção do stream
 - [x] ETAPA 5 — interface: participantes, miniaturas, fullscreen, animações
-- [ ] ETAPA 6 — áudio da tela + microfone, bitrate e FPS
+- [x] ETAPA 6 — áudio da tela + microfone, bitrate e FPS

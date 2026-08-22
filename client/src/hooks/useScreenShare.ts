@@ -7,6 +7,11 @@ interface UseScreenShareResult {
   localStream: MediaStream | null;
   isSharing: boolean;
   error: string | null;
+  /** O SO entregou áudio do sistema junto com a tela? */
+  hasSystemAudio: boolean;
+  /** Áudio do sistema ligado no momento. */
+  systemAudioOn: boolean;
+  toggleSystemAudio: () => void;
   startSharing: () => Promise<void>;
   stopSharing: () => void;
 }
@@ -15,7 +20,10 @@ interface UseScreenShareResult {
 export function useScreenShare(inRoom: boolean): UseScreenShareResult {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [systemAudioOn, setSystemAudioOn] = useState(true);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const systemAudioTrack = localStream?.getAudioTracks()[0] ?? null;
 
   const stopSharing = useCallback(() => {
     if (!streamRef.current) return;
@@ -24,6 +32,7 @@ export function useScreenShare(inRoom: boolean): UseScreenShareResult {
     stopStream(streamRef.current);
     streamRef.current = null;
     setLocalStream(null);
+    setSystemAudioOn(true);
     socket.emit('share:stop');
   }, []);
 
@@ -37,6 +46,7 @@ export function useScreenShare(inRoom: boolean): UseScreenShareResult {
 
       streamRef.current = stream;
       setLocalStream(stream);
+      setSystemAudioOn(stream.getAudioTracks().length > 0);
       peerManager.setLocalStream(stream);
       socket.emit('share:start');
     } catch (err) {
@@ -53,10 +63,23 @@ export function useScreenShare(inRoom: boolean): UseScreenShareResult {
 
   useEffect(() => () => stopSharing(), [stopSharing]);
 
+  /**
+   * Alterna com track.enabled em vez de remover a track: é instantâneo e não
+   * dispara renegociação, ao contrário de ligar/desligar o microfone.
+   */
+  const toggleSystemAudio = useCallback(() => {
+    if (!systemAudioTrack) return;
+    systemAudioTrack.enabled = !systemAudioTrack.enabled;
+    setSystemAudioOn(systemAudioTrack.enabled);
+  }, [systemAudioTrack]);
+
   return {
     localStream,
     isSharing: localStream !== null,
     error,
+    hasSystemAudio: systemAudioTrack !== null,
+    systemAudioOn,
+    toggleSystemAudio,
     startSharing,
     stopSharing,
   };

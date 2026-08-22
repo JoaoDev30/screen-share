@@ -816,3 +816,15 @@ body {
 .video-frame:fullscreen:hover .video-frame__bar {
   opacity: 1;
 }
+
+/* ---------- Controles ligados (áudio) ---------- */
+
+.btn--on {
+  background: rgba(59, 165, 93, 0.18);
+  border: 1px solid rgba(59, 165, 93, 0.45);
+  color: #7ee2a0;
+}
+
+.btn--on:hover:not(:disabled) {
+  background: rgba(59, 165, 93, 0.26);
+}

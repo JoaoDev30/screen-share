@@ -7,8 +7,25 @@ interface UsePeersResult {
   peerStates: Record<string, PeerState>;
   /** Peers cujo DataChannel já entregou mensagem (P2P confirmado de ponta a ponta). */
   channelsOpen: string[];
-  /** Streams recebidos, por socket.id de quem transmite. */
+  /** Streams de tela recebidos, por socket.id de quem transmite. */
   remoteStreams: Record<string, MediaStream>;
+  /** Microfones recebidos, por socket.id. Tocam sempre, sem ir para o palco. */
+  remoteAudio: Record<string, MediaStream>;
+}
+
+/** Insere ou remove um stream do mapa, preservando a referência quando nada muda. */
+function upsert(
+  map: Record<string, MediaStream>,
+  id: string,
+  stream: MediaStream | null
+): Record<string, MediaStream> {
+  if (!stream) {
+    if (!(id in map)) return map;
+    const next = { ...map };
+    delete next[id];
+    return next;
+  }
+  return map[id] === stream ? map : { ...map, [id]: stream };
 }
 
 /**
@@ -21,6 +38,7 @@ export function usePeers(room: RoomSnapshot | null, participants: Participant[])
   const [peerStates, setPeerStates] = useState<Record<string, PeerState>>({});
   const [channelsOpen, setChannelsOpen] = useState<string[]>([]);
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
+  const [remoteAudio, setRemoteAudio] = useState<Record<string, MediaStream>>({});
   const knownIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -31,17 +49,8 @@ export function usePeers(room: RoomSnapshot | null, participants: Participant[])
       (peerId, state) => {
         setPeerStates((prev) => (prev[peerId] === state ? prev : { ...prev, [peerId]: state }));
       },
-      (peerId, stream) => {
-        setRemoteStreams((prev) => {
-          if (!stream) {
-            if (!(peerId in prev)) return prev;
-            const next = { ...prev };
-            delete next[peerId];
-            return next;
-          }
-          return prev[peerId] === stream ? prev : { ...prev, [peerId]: stream };
-        });
-      }
+      (peerId, stream) => setRemoteStreams((prev) => upsert(prev, peerId, stream)),
+      (peerId, stream) => setRemoteAudio((prev) => upsert(prev, peerId, stream))
     );
 
     const onPeerMessage = (event: Event) => {
@@ -65,6 +74,7 @@ export function usePeers(room: RoomSnapshot | null, participants: Participant[])
       setPeerStates({});
       setChannelsOpen([]);
       setRemoteStreams({});
+      setRemoteAudio({});
     };
   }, [room]);
 
@@ -85,17 +95,13 @@ export function usePeers(room: RoomSnapshot | null, participants: Participant[])
           return next;
         });
         setChannelsOpen((prev) => prev.filter((peerId) => peerId !== id));
-        setRemoteStreams((prev) => {
-          if (!(id in prev)) return prev;
-          const next = { ...prev };
-          delete next[id];
-          return next;
-        });
+        setRemoteStreams((prev) => upsert(prev, id, null));
+        setRemoteAudio((prev) => upsert(prev, id, null));
       }
     }
 
     for (const id of currentIds) knownIds.current.add(id);
   }, [participants, room]);
 
-  return { peerStates, channelsOpen, remoteStreams };
+  return { peerStates, channelsOpen, remoteStreams, remoteAudio };
 }

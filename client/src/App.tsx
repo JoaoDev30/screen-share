@@ -4,6 +4,7 @@ import SourcePicker from './components/SourcePicker';
 import { useRoom } from './hooks/useRoom';
 import { usePeers } from './hooks/usePeers';
 import { useScreenShare } from './hooks/useScreenShare';
+import { useMicrophone } from './hooks/useMicrophone';
 
 export default function App() {
   const {
@@ -19,9 +20,21 @@ export default function App() {
     clearError,
   } = useRoom();
 
-  const { peerStates, channelsOpen, remoteStreams } = usePeers(room, participants);
-  const { localStream, isSharing, error: shareError, startSharing, stopSharing } =
-    useScreenShare(room !== null);
+  const { peerStates, channelsOpen, remoteStreams, remoteAudio } = usePeers(
+    room,
+    participants
+  );
+  const {
+    localStream,
+    isSharing,
+    error: shareError,
+    hasSystemAudio,
+    systemAudioOn,
+    toggleSystemAudio,
+    startSharing,
+    stopSharing,
+  } = useScreenShare(room !== null);
+  const { micOn, micError, toggleMic } = useMicrophone(room !== null);
 
   return (
     <>
@@ -32,9 +45,16 @@ export default function App() {
           peerStates={peerStates}
           channelsOpen={channelsOpen}
           remoteStreams={remoteStreams}
+          remoteAudio={remoteAudio}
           localStream={localStream}
           isSharing={isSharing}
           shareError={shareError}
+          hasSystemAudio={hasSystemAudio}
+          systemAudioOn={systemAudioOn}
+          onToggleSystemAudio={toggleSystemAudio}
+          micOn={micOn}
+          micError={micError}
+          onToggleMic={toggleMic}
           onStartShare={startSharing}
           onStopShare={stopSharing}
           onLeave={leaveRoom}

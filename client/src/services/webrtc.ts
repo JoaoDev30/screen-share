@@ -18,12 +18,23 @@ interface Peer {
   polite: boolean;
   makingOffer: boolean;
   ignoreOffer: boolean;
-  /** Senders das tracks locais, para conseguir remover ao parar. */
+  /** Senders da tela, para conseguir remover ao parar. */
   senders: RTCRtpSender[];
+  /** Senders do microfone, independentes da tela. */
+  micSenders: RTCRtpSender[];
 }
 
 type StateListener = (peerId: string, state: PeerState) => void;
 type RemoteStreamListener = (peerId: string, stream: MediaStream | null) => void;
+type RemoteAudioListener = (peerId: string, stream: MediaStream | null) => void;
+
+/**
+ * Limites de encoding. 2,5 Mbps segura 1080p30 de tela sem estourar o upload
+ * caseiro; o WebRTC usa menos quando a banda não permite.
+ */
+const MAX_VIDEO_BITRATE = 2_500_000;
+const MAX_FRAMERATE = 30;
+const MAX_AUDIO_BITRATE = 128_000;
 
 export class PeerManager {
   private peers = new Map<string, Peer>();
@@ -31,22 +42,28 @@ export class PeerManager {
   private listener: StateListener = () => {};
   /** Stream que estou transmitindo agora (null quando não transmito). */
   private localStream: MediaStream | null = null;
+  /** Microfone: vive separado da tela, pode estar ligado sem transmissão. */
+  private micStream: MediaStream | null = null;
   private onRemoteStream: RemoteStreamListener = () => {};
+  private onRemoteAudio: RemoteAudioListener = () => {};
 
   start(
     selfId: string,
     onStateChange: StateListener,
-    onRemoteStream: RemoteStreamListener
+    onRemoteStream: RemoteStreamListener,
+    onRemoteAudio: RemoteAudioListener
   ): void {
     this.selfId = selfId;
     this.listener = onStateChange;
     this.onRemoteStream = onRemoteStream;
+    this.onRemoteAudio = onRemoteAudio;
     socket.on('webrtc:signal', this.handleSignal);
   }
 
   stop(): void {
     socket.off('webrtc:signal', this.handleSignal);
     this.localStream = null;
+    this.micStream = null;
     for (const id of [...this.peers.keys()]) this.disconnect(id);
   }
 
@@ -59,6 +76,68 @@ export class PeerManager {
     for (const peer of this.peers.values()) {
       // Peer no meio de uma negociacao pega a track quando voltar a 'stable'.
       if (peer.pc.signalingState === 'stable') this.attachLocalStream(peer);
+    }
+  }
+
+  /** Liga o microfone para todos os peers. Independente da tela. */
+  setMicStream(stream: MediaStream): void {
+    this.micStream = stream;
+    for (const peer of this.peers.values()) {
+      if (peer.pc.signalingState === 'stable') this.attachMicStream(peer);
+    }
+  }
+
+  /** Desliga o microfone (remove a track de verdade, não só muta). */
+  clearMicStream(): void {
+    this.micStream = null;
+    for (const peer of this.peers.values()) {
+      for (const sender of peer.micSenders) {
+        try {
+          peer.pc.removeTrack(sender);
+        } catch (err) {
+          console.error('[webrtc] falha ao remover microfone', err);
+        }
+      }
+      peer.micSenders = [];
+    }
+  }
+
+  private attachMicStream(peer: Peer): void {
+    if (!this.micStream || peer.micSenders.length > 0) return;
+    if (peer.pc.signalingState !== 'stable') return;
+
+    for (const track of this.micStream.getAudioTracks()) {
+      const sender = peer.pc.addTrack(track, this.micStream);
+      peer.micSenders.push(sender);
+      void this.tuneSender(sender);
+    }
+  }
+
+  /**
+   * Limita bitrate e FPS no encoder.
+   *
+   * degradationPreference 'maintain-framerate': sob banda apertada o WebRTC
+   * derruba a resolução e segura os 30 FPS. É o oposto do padrão para tela
+   * (que prioriza nitidez) e é o que evita a sensação de travamento.
+   */
+  private async tuneSender(sender: RTCRtpSender): Promise<void> {
+    try {
+      const params = sender.getParameters();
+      if (!params.encodings || params.encodings.length === 0) {
+        params.encodings = [{}];
+      }
+
+      const isVideo = sender.track?.kind === 'video';
+      params.encodings[0].maxBitrate = isVideo ? MAX_VIDEO_BITRATE : MAX_AUDIO_BITRATE;
+      if (isVideo) {
+        params.encodings[0].maxFramerate = MAX_FRAMERATE;
+        params.degradationPreference = 'maintain-framerate';
+      }
+
+      await sender.setParameters(params);
+    } catch (err) {
+      // setParameters pode falhar se a negociação ainda não assentou.
+      console.warn('[webrtc] não foi possível ajustar o encoder', err);
     }
   }
 
@@ -86,7 +165,12 @@ export class PeerManager {
     if (!this.localStream || peer.senders.length > 0) return;
     if (peer.pc.signalingState !== 'stable') return;
     for (const track of this.localStream.getTracks()) {
-      peer.senders.push(peer.pc.addTrack(track, this.localStream));
+      // Tela: prioriza fluidez. O áudio do sistema vem no mesmo stream.
+      if (track.kind === 'video') track.contentHint = 'motion';
+
+      const sender = peer.pc.addTrack(track, this.localStream);
+      peer.senders.push(sender);
+      void this.tuneSender(sender);
     }
   }
 
@@ -95,6 +179,7 @@ export class PeerManager {
     const peer = this.ensurePeer(peerId);
     // Se ja estou transmitindo, a offer inicial ja sai com a track dentro.
     this.attachLocalStream(peer);
+    this.attachMicStream(peer);
     // Criar o DataChannel gera a m-line e dispara o negotiationneeded (a offer).
     if (!peer.channel) {
       peer.channel = peer.pc.createDataChannel('control', { ordered: true });
@@ -150,6 +235,7 @@ export class PeerManager {
       makingOffer: false,
       ignoreOffer: false,
       senders: [],
+      micSenders: [],
     };
     this.peers.set(peerId, peer);
 
@@ -184,10 +270,18 @@ export class PeerManager {
       const stream = streams[0];
       if (!stream) return;
 
-      this.onRemoteStream(peerId, stream);
-      track.onended = () => this.onRemoteStream(peerId, null);
+      /*
+       * Duas coisas chegam por aqui: a tela (stream com vídeo, podendo levar
+       * o áudio do sistema junto) e o microfone (stream só de áudio). Sem
+       * separar, o microfone viraria uma miniatura sem imagem.
+       */
+      const isScreen = stream.getVideoTracks().length > 0;
+      const notify = isScreen ? this.onRemoteStream : this.onRemoteAudio;
+
+      notify(peerId, stream);
+      track.onended = () => notify(peerId, null);
       stream.onremovetrack = () => {
-        if (stream.getTracks().length === 0) this.onRemoteStream(peerId, null);
+        if (stream.getTracks().length === 0) notify(peerId, null);
       };
     };
 
@@ -195,7 +289,9 @@ export class PeerManager {
     // Cobre: entrei transmitindo, comecei a transmitir durante uma negociacao,
     // ou alguem chegou enquanto eu ja transmitia.
     pc.onsignalingstatechange = () => {
-      if (pc.signalingState === 'stable') this.attachLocalStream(peer);
+      if (pc.signalingState !== 'stable') return;
+      this.attachLocalStream(peer);
+      this.attachMicStream(peer);
     };
 
     this.listener(peerId, 'new');

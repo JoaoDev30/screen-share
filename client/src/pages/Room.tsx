@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import ParticipantList from '../components/ParticipantList';
 import RoomHeader from '../components/RoomHeader';
 import VideoStage, { type Broadcast } from '../components/VideoStage';
+import RemoteAudio from '../components/RemoteAudio';
 import type { Participant, PeerState, RoomSnapshot } from '../services/types';
 
 interface RoomProps {
@@ -10,9 +11,16 @@ interface RoomProps {
   peerStates: Record<string, PeerState>;
   channelsOpen: string[];
   remoteStreams: Record<string, MediaStream>;
+  remoteAudio: Record<string, MediaStream>;
   localStream: MediaStream | null;
   isSharing: boolean;
   shareError: string | null;
+  hasSystemAudio: boolean;
+  systemAudioOn: boolean;
+  onToggleSystemAudio: () => void;
+  micOn: boolean;
+  micError: string | null;
+  onToggleMic: () => void;
   onStartShare: () => void;
   onStopShare: () => void;
   onLeave: () => void;
@@ -24,9 +32,16 @@ export default function Room({
   peerStates,
   channelsOpen,
   remoteStreams,
+  remoteAudio,
   localStream,
   isSharing,
   shareError,
+  hasSystemAudio,
+  systemAudioOn,
+  onToggleSystemAudio,
+  micOn,
+  micError,
+  onToggleMic,
   onStartShare,
   onStopShare,
   onLeave,
@@ -81,7 +96,9 @@ export default function Room({
       </div>
 
       <footer className="controls">
-        {shareError && <span className="controls__error">{shareError}</span>}
+        {(shareError ?? micError) && (
+          <span className="controls__error">{shareError ?? micError}</span>
+        )}
 
         <button className="btn btn--primary" onClick={onStartShare} disabled={isSharing}>
           Compartilhar tela
@@ -89,17 +106,36 @@ export default function Room({
         <button className="btn btn--ghost" onClick={onStopShare} disabled={!isSharing}>
           Parar
         </button>
-        {/* Ligados na ETAPA 6. */}
-        <button className="btn btn--ghost" disabled title="Chega na ETAPA 6">
-          Mutar microfone
+
+        <button
+          className={`btn ${micOn ? 'btn--on' : 'btn--ghost'}`}
+          onClick={onToggleMic}
+        >
+          {micOn ? 'Mutar microfone' : 'Ativar microfone'}
         </button>
-        <button className="btn btn--ghost" disabled title="Chega na ETAPA 6">
-          Áudio da tela
+
+        <button
+          className={`btn ${hasSystemAudio && systemAudioOn ? 'btn--on' : 'btn--ghost'}`}
+          onClick={onToggleSystemAudio}
+          disabled={!hasSystemAudio}
+          title={
+            hasSystemAudio
+              ? 'Áudio que o seu computador está tocando'
+              : isSharing
+                ? 'Esta fonte não forneceu áudio do sistema'
+                : 'Disponível ao compartilhar a tela'
+          }
+        >
+          {systemAudioOn && hasSystemAudio ? 'Áudio da tela: ligado' : 'Áudio da tela'}
         </button>
+
         <button className="btn btn--danger" onClick={onLeave}>
           Sair
         </button>
       </footer>
+
+      {/* Microfones dos outros: tocam independentemente do palco. */}
+      <RemoteAudio streams={remoteAudio} />
     </div>
   );
 }

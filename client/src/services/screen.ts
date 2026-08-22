@@ -30,8 +30,16 @@ const CONSTRAINTS: DisplayMediaStreamOptions = {
     width: { max: 1920 },
     height: { max: 1080 },
   },
-  // Áudio do sistema chega na ETAPA 6.
-  audio: false,
+  /**
+   * Pedimos sempre o áudio do sistema. Se o SO não entregar, a track
+   * simplesmente não vem e o botão da interface aparece indisponível —
+   * melhor do que obrigar a escolher antes de saber se dá.
+   */
+  audio: {
+    autoGainControl: false,
+    echoCancellation: false,
+    noiseSuppression: false,
+  },
 };
 
 export class ScreenShareCancelled extends Error {
@@ -59,4 +67,16 @@ export async function captureScreen(): Promise<MediaStream> {
 
 export function stopStream(stream: MediaStream | null): void {
   stream?.getTracks().forEach((track) => track.stop());
+}
+
+/** Microfone. Aqui o processamento de voz ajuda, ao contrário do áudio do sistema. */
+export async function captureMicrophone(): Promise<MediaStream> {
+  return navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+    video: false,
+  });
 }

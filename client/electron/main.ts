@@ -17,7 +17,7 @@ const PICKER_TIMEOUT_MS = 60_000;
  * a promise rejeita. Aqui buscamos as fontes e delegamos a escolha para a UI.
  */
 function setupDisplayMediaHandler(): void {
-  session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
+  session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
     const sources = await desktopCapturer.getSources({
       types: ['screen', 'window'],
       thumbnailSize: { width: 320, height: 180 },
@@ -57,7 +57,12 @@ function setupDisplayMediaHandler(): void {
     const source = sources.find((s) => s.id === chosenId);
     if (!source) return callback({});
 
-    callback({ video: source });
+    // 'loopback' captura o audio que o sistema esta tocando (Windows/macOS).
+    // Sem isso o getDisplayMedia devolve so video, mesmo pedindo audio.
+    callback({
+      video: source,
+      audio: request.audioRequested ? 'loopback' : undefined,
+    });
   });
 }
 
