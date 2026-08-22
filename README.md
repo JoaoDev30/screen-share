@@ -5,9 +5,9 @@ com sinalização via Socket.IO e transmissão P2P por WebRTC.
 
 Sem login, sem banco, sem criptografia. Feito para um grupo pequeno em rede de confiança.
 
-Tema escuro em esmeralda: fundo quase preto com viés esverdeado, acento
-`#2ee88a` e superfícies com gradiente suave. Todos os pares de texto e fundo
-passam WCAG AA (contraste mínimo de 4,5:1).
+Tema escuro em azul royal: fundo navy quase preto, acento `#3d5afe` e
+superfícies com gradiente suave. O verde ficou reservado para "ao vivo".
+Todos os pares de texto e fundo passam WCAG AA (contraste mínimo de 4,5:1).
 
 ## Requisitos
 
@@ -144,7 +144,7 @@ Gere o executável:
 npm --prefix client run dist
 ```
 
-Sai em `client/release/ScreenShare-1.0.0-portable.exe`. A URL fica **dentro** do
+Sai em `client/release/ScreenShare-1.1.0-portable.exe`. A URL fica **dentro** do
 binário — seus amigos só abrem e usam.
 
 ### Sobre o plano gratuito
@@ -156,7 +156,7 @@ serviço externo pingando `/health` a cada 10 minutos.
 
 ## Mandando o app para os amigos
 
-Mande apenas o `ScreenShare-1.0.0-portable.exe` (~90 MB). Não precisa instalar nada.
+Mande apenas o `ScreenShare-1.1.0-portable.exe` (~90 MB). Não precisa instalar nada.
 
 Na primeira abertura o Windows mostra "O Windows protegeu o computador", porque o
 executável não é assinado. **Mais informações → Executar assim mesmo**.

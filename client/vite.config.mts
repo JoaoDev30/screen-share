@@ -8,6 +8,14 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    watch: {
+      /*
+       * O watcher precisa ignorar a saída do empacotador. Ele vasculha os
+       * ~200 MB do Electron recém-extraídos e segura handles neles, e aí o
+       * electron-builder falha com EPERM ao renomear a pasta temporária.
+       */
+      ignored: ['**/release/**', '**/build-out/**', '**/dist-electron/**'],
+    },
   },
   build: {
     outDir: 'dist',
