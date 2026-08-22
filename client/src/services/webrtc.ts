@@ -7,6 +7,40 @@ import type { IncomingSignal, PeerState } from './types';
  */
 const ICE_SERVERS: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 
+/**
+ * Liga estéreo e FEC no Opus.
+ *
+ * Por padrão o WebRTC negocia Opus em mono: capturamos o som do computador em
+ * estéreo e ele seria rebaixado no caminho, o que estraga música e jogo. Só o
+ * fmtp do SDP muda isso — não existe API para pedir estéreo de outro jeito.
+ */
+function withStereoOpus(sdp: string | undefined): string | undefined {
+  if (!sdp) return sdp;
+
+  const opus = sdp.match(/a=rtpmap:(\d+) opus\/48000\/2/);
+  if (!opus) return sdp;
+
+  const pt = opus[1];
+  const extras = [
+    'stereo=1',
+    'sprop-stereo=1',
+    `maxaveragebitrate=${MAX_AUDIO_BITRATE}`,
+    'useinbandfec=1',
+  ];
+
+  const fmtp = new RegExp(`a=fmtp:${pt} (.*)`);
+  if (fmtp.test(sdp)) {
+    return sdp.replace(fmtp, (_line, params: string) => {
+      const faltando = extras.filter((e) => !params.includes(e.split('=')[0] + '='));
+      return `a=fmtp:${pt} ${[params, ...faltando].join(';')}`;
+    });
+  }
+
+  // Sem fmtp para Opus nao ha onde declarar estereo. Nao acontece no
+  // Chrome/Electron; se acontecer, seguimos em mono em vez de quebrar.
+  return sdp;
+}
+
 interface Peer {
   id: string;
   pc: RTCPeerConnection;
@@ -242,7 +276,10 @@ export class PeerManager {
     pc.onnegotiationneeded = async () => {
       try {
         peer.makingOffer = true;
-        await pc.setLocalDescription();
+        // Explícito em vez de setLocalDescription(): preciso editar o SDP.
+        const offer = await pc.createOffer();
+        offer.sdp = withStereoOpus(offer.sdp);
+        await pc.setLocalDescription(offer);
         this.signal(peerId, { description: pc.localDescription?.toJSON() });
       } catch (err) {
         console.error('[webrtc] falha ao criar offer', err);
@@ -332,7 +369,9 @@ export class PeerManager {
 
         await pc.setRemoteDescription(sdp);
         if (sdp.type === 'offer') {
-          await pc.setLocalDescription();
+          const answer = await pc.createAnswer();
+          answer.sdp = withStereoOpus(answer.sdp);
+          await pc.setLocalDescription(answer);
           this.signal(from, { description: pc.localDescription?.toJSON() });
         }
       } else if (candidate) {
