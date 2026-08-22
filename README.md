@@ -5,6 +5,10 @@ com sinalização via Socket.IO e transmissão P2P por WebRTC.
 
 Sem login, sem banco, sem criptografia. Feito para um grupo pequeno em rede de confiança.
 
+Tema escuro em esmeralda: fundo quase preto com viés esverdeado, acento
+`#2ee88a` e superfícies com gradiente suave. Todos os pares de texto e fundo
+passam WCAG AA (contraste mínimo de 4,5:1).
+
 ## Requisitos
 
 - Node.js 20+ (testado no 25)
