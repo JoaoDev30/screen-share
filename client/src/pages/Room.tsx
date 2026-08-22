@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import ParticipantList from '../components/ParticipantList';
 import RoomHeader from '../components/RoomHeader';
 import VideoStage, { type Broadcast } from '../components/VideoStage';
 import RemoteAudio from '../components/RemoteAudio';
+import VolumeMenu, { type VolumeTarget } from '../components/VolumeMenu';
+import { useVolumes } from '../hooks/useVolumes';
 import type { Participant, PeerState, RoomSnapshot } from '../services/types';
 
 interface RoomProps {
@@ -47,6 +49,12 @@ export default function Room({
   onLeave,
 }: RoomProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [volumeTarget, setVolumeTarget] = useState<VolumeTarget | null>(null);
+  const { getVolume, setVolume } = useVolumes();
+
+  const abrirVolume = useCallback((peerId: string, name: string, x: number, y: number) => {
+    setVolumeTarget({ peerId, name, x, y });
+  }, []);
 
   const broadcasts = useMemo<Broadcast[]>(() => {
     const remote = Object.entries(remoteStreams).map(([id, stream]) => ({
@@ -85,6 +93,7 @@ export default function Room({
           activeId={active?.id ?? null}
           onSelectSharer={setSelectedId}
           liveCount={broadcasts.length}
+          onContextMenu={(p, x, y) => abrirVolume(p.id, p.name, x, y)}
         />
 
         <VideoStage
@@ -92,6 +101,8 @@ export default function Room({
           active={active}
           onSelect={setSelectedId}
           emptyHint={`Compartilhe o código ${room.code} com seus amigos.`}
+          volume={active ? getVolume(active.id) : 100}
+          onContextMenu={(b, x, y) => abrirVolume(b.id, b.isLocal ? 'Sua tela' : b.name, x, y)}
         />
       </div>
 
@@ -135,7 +146,16 @@ export default function Room({
       </footer>
 
       {/* Microfones dos outros: tocam independentemente do palco. */}
-      <RemoteAudio streams={remoteAudio} />
+      <RemoteAudio streams={remoteAudio} getVolume={getVolume} />
+
+      {volumeTarget && (
+        <VolumeMenu
+          target={volumeTarget}
+          volume={getVolume(volumeTarget.peerId)}
+          onChange={(v) => setVolume(volumeTarget.peerId, v)}
+          onClose={() => setVolumeTarget(null)}
+        />
+      )}
     </div>
   );
 }

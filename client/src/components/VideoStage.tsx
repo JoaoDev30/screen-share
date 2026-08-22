@@ -14,6 +14,9 @@ interface VideoStageProps {
   active: Broadcast | null;
   onSelect: (id: string) => void;
   emptyHint: string;
+  /** Volume 0-100 da transmissão em cartaz. */
+  volume: number;
+  onContextMenu: (broadcast: Broadcast, x: number, y: number) => void;
 }
 
 export default function VideoStage({
@@ -21,6 +24,8 @@ export default function VideoStage({
   active,
   onSelect,
   emptyHint,
+  volume,
+  onContextMenu,
 }: VideoStageProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,6 +41,11 @@ export default function VideoStage({
       video.play().catch(() => {});
     }
   }, [active]);
+
+  // O áudio do sistema viaja na mesma stream do vídeo, então o volume é daqui.
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.volume = volume / 100;
+  }, [volume, active]);
 
   useEffect(() => {
     const onChange = () => setFullscreen(document.fullscreenElement !== null);
@@ -71,6 +81,10 @@ export default function VideoStage({
             playsInline
             muted={active.isLocal}
             onDoubleClick={toggleFullscreen}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onContextMenu(active, e.clientX, e.clientY);
+            }}
           />
 
           <div className="video-frame__bar">
@@ -107,6 +121,7 @@ export default function VideoStage({
                 isLocal={broadcast.isLocal}
                 active={broadcast.id === active.id}
                 onClick={() => onSelect(broadcast.id)}
+                onContextMenu={(x, y) => onContextMenu(broadcast, x, y)}
               />
             ))}
           </div>

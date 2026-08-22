@@ -10,6 +10,7 @@ interface ParticipantListProps {
   onSelectSharer: (id: string) => void;
   /** Transmissões realmente recebidas — não a flag do servidor. */
   liveCount: number;
+  onContextMenu: (participant: Participant, x: number, y: number) => void;
 }
 
 function initials(name: string): string {
@@ -68,6 +69,7 @@ export default function ParticipantList({
   activeId,
   onSelectSharer,
   liveCount,
+  onContextMenu,
 }: ParticipantListProps) {
 
   return (
@@ -96,6 +98,14 @@ export default function ParticipantList({
                 .filter(Boolean)
                 .join(' ')}
               onClick={clickable ? () => onSelectSharer(p.id) : undefined}
+              onContextMenu={
+                isSelf
+                  ? undefined
+                  : (e) => {
+                      e.preventDefault();
+                      onContextMenu(p, e.clientX, e.clientY);
+                    }
+              }
             >
               <span className="avatar">{initials(p.name)}</span>
 

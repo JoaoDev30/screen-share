@@ -6,6 +6,7 @@ interface BroadcastTileProps {
   isLocal: boolean;
   active: boolean;
   onClick: () => void;
+  onContextMenu: (x: number, y: number) => void;
 }
 
 /** Miniatura clicável de uma transmissão. Clicar joga ela no palco principal. */
@@ -15,6 +16,7 @@ export default function BroadcastTile({
   isLocal,
   active,
   onClick,
+  onContextMenu,
 }: BroadcastTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -29,7 +31,11 @@ export default function BroadcastTile({
     <button
       className={`tile ${active ? 'tile--active' : ''}`}
       onClick={onClick}
-      title={`Ver ${name}`}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu(e.clientX, e.clientY);
+      }}
+      title={`Ver ${name} — clique direito para o volume`}
     >
       {/* Sempre mudo: o áudio sai pelo palco principal, nunca pelas miniaturas. */}
       <video ref={videoRef} className="tile__video" autoPlay playsInline muted />
