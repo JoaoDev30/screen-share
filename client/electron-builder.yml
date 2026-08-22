@@ -1,0 +1,28 @@
+appId: com.screenshare.mvp
+productName: ScreenShare
+copyright: ScreenShare
+
+directories:
+  output: release
+  buildResources: build
+
+# Só o que a aplicação precisa em runtime.
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+
+win:
+  # Portable: um .exe único, sem instalador. É o que se manda no WhatsApp.
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: ScreenShare-${version}-portable.exe
+
+portable:
+  # Nome fixo da janela do unpacker, evita conflito entre execuções.
+  unpackDirName: ScreenShare
+
+# Sem assinatura: é um MVP entre amigos. O SmartScreen vai avisar.
+forceCodeSigning: false
