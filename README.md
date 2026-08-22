@@ -165,10 +165,42 @@ link **Servidor: localhost:3001** na tela inicial e trocam pelo IP dele.
 netsh advfirewall firewall add rule name="ScreenShare" dir=in action=allow protocol=TCP localport=3001
 ```
 
+## Como usar na sala
+
+### Transmitir
+
+**Compartilhar tela** abre o seletor com as telas, janelas e aplicativos disponíveis,
+cada um com miniatura. **Parar** encerra. Fechar a captura pela barra do sistema
+também para — o app percebe.
+
+### Assistir com várias transmissões
+
+Se mais de uma pessoa compartilhar, aparecem miniaturas abaixo do vídeo. Clicar troca
+o vídeo principal. Quem está no palco é marcado em quatro lugares ao mesmo tempo:
+
+| Onde | Marca |
+| --- | --- |
+| Lista de participantes | status "Assistindo esta" e um ▶ azul |
+| Quem transmite mas não está no palco | "Transmitindo · clique para ver" |
+| Miniatura | selo "▶ Assistindo" |
+| Barra do vídeo | "Assistindo · **Nome** · 1 de N transmissões" |
+
+**Tela cheia**: botão na barra do vídeo, ou duplo clique na imagem. `Esc` sai.
+
+### Volume por pessoa
+
+**Clique direito** no vídeo, numa miniatura ou num participante abre uma barra de
+0 a 100, no estilo Discord, com botão de silenciar. O ajuste vale só para você e
+alcança tanto o áudio da tela quanto o microfone daquela pessoa.
+
+O volume dura só a sessão: a identidade aqui é o `socket.id`, que muda a cada
+reconexão, então guardar não teria a quem aplicar depois.
+
 ### Áudio
 
 - **Áudio da tela**: capturado junto com a imagem, via `loopback` do Electron. Se a
-  fonte escolhida não fornecer áudio, o botão aparece indisponível.
+  fonte escolhida não fornecer áudio, o botão aparece indisponível. No Windows o
+  loopback pega **todo** o som do computador, não só o da janela escolhida.
 - **Microfone**: desligado por padrão. Ligar abre o microfone e envia; desligar
   **remove a trilha**, não apenas muta — mutando, o sistema operacional continuaria
   com o microfone aberto.
@@ -179,8 +211,12 @@ netsh advfirewall firewall add rule name="ScreenShare" dir=in action=allow proto
 
 Vídeo limitado a 2,5 Mbps e 30 FPS, com `degradationPreference: maintain-framerate`:
 sob banda apertada o WebRTC derruba a resolução e segura os quadros, em vez de travar
-a imagem. Áudio em até 128 kbps, sem cancelamento de eco nem ganho automático no som
-do sistema — esses tratamentos são para voz e estragariam música e jogo.
+a imagem.
+
+Áudio em até 128 kbps, **em estéreo**. O Opus negocia mono por padrão no WebRTC, então
+o SDP declara `stereo=1` e `sprop-stereo=1` — sem isso o som seria rebaixado no
+caminho. O processamento de voz (eco, ruído, ganho automático) fica desligado no som
+do sistema: serve para voz e estragaria música e jogo.
 
 ### Limite conhecido
 
@@ -192,11 +228,24 @@ não tem.
 
 ```
 screen-share-app/
-├── server/          # sinalização (Express + Socket.IO), estado em memória
-│   └── src/{server,socket,rooms,types}.ts
+├── server/               # sinalização (Express + Socket.IO), estado em memória
+│   ├── src/
+│   │   ├── server.ts     # HTTP + health check
+│   │   ├── socket.ts     # salas, participantes e relay de SDP/ICE
+│   │   ├── rooms.ts      # estado em memória, códigos de 6 caracteres
+│   │   └── types.ts      # contratos compartilhados
+│   └── Dockerfile
 ├── client/
-│   ├── electron/    # processo principal + preload
-│   └── src/{pages,components,hooks,services,styles}
+│   ├── electron/         # processo principal (seletor de tela) + preload
+│   └── src/
+│       ├── pages/        # Home, Room
+│       ├── components/   # VideoStage, BroadcastTile, ParticipantList,
+│       │                 # SourcePicker, VolumeMenu, RemoteAudio, ...
+│       ├── hooks/        # useRoom, usePeers, useScreenShare,
+│       │                 # useMicrophone, useVolumes
+│       ├── services/     # socket, webrtc (PeerManager), screen, config
+│       └── styles/
+├── render.yaml           # blueprint de deploy do servidor
 └── README.md
 ```
 
