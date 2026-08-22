@@ -33,6 +33,8 @@ export default function BroadcastTile({
     >
       {/* Sempre mudo: o áudio sai pelo palco principal, nunca pelas miniaturas. */}
       <video ref={videoRef} className="tile__video" autoPlay playsInline muted />
+      {active && <span className="tile__badge">▶ Assistindo</span>}
+
       <span className="tile__name">
         {isLocal && <span className="live-dot" />}
         {name}

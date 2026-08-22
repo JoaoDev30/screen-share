@@ -828,3 +828,61 @@ body {
 .btn--on:hover:not(:disabled) {
   background: rgba(59, 165, 93, 0.26);
 }
+
+/* ---------- Qual transmissão estou vendo ---------- */
+
+.watching-badge {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--white);
+  font-size: 9px;
+  line-height: 1;
+  animation: rise 200ms ease;
+}
+
+.tile__badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  animation: fade 200ms ease;
+}
+
+.video-frame__watching {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: rgba(170, 176, 189, 0.75);
+}
+
+.video-frame__who {
+  color: var(--white);
+  font-weight: 600;
+}
+
+.video-frame__count {
+  color: rgba(170, 176, 189, 0.6);
+  font-size: 12px;
+}
+
+/* Quem está no palco fica visualmente separado de quem só transmite. */
+.participant--active .participant__name {
+  color: var(--white);
+  font-weight: 600;
+}
+
+.participant--active .peer-state--live {
+  color: #aab4ff;
+}

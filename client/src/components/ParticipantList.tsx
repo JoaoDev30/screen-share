@@ -32,6 +32,34 @@ function peerTone(state: PeerState | undefined): string {
   return 'wait';
 }
 
+/**
+ * O status responde duas perguntas diferentes: quem está transmitindo, e qual
+ * dessas transmissões estou vendo. Com várias telas no ar, a segunda é a que
+ * some se todo mundo aparecer só como "Transmitindo".
+ */
+function statusLabel(
+  p: Participant,
+  isSelf: boolean,
+  state: PeerState | undefined,
+  onStage: boolean,
+  channelOk: boolean
+): string {
+  if (p.isSharing && onStage) return isSelf ? 'Sua tela no palco' : 'Assistindo esta';
+  if (p.isSharing) return isSelf ? 'Transmitindo' : 'Transmitindo · clique para ver';
+  if (isSelf) return 'Você';
+  return `${state ? PEER_LABEL[state] : 'Aguardando…'}${channelOk ? ' · canal ok' : ''}`;
+}
+
+function statusTone(
+  p: Participant,
+  isSelf: boolean,
+  state: PeerState | undefined
+): string {
+  if (p.isSharing) return 'live';
+  if (isSelf) return 'wait';
+  return peerTone(state);
+}
+
 export default function ParticipantList({
   participants,
   selfId,
@@ -52,6 +80,8 @@ export default function ParticipantList({
         {participants.map((p) => {
           const isSelf = p.id === selfId;
           const state = peerStates[p.id];
+          /** Esta é a transmissão que estou vendo no palco agora. */
+          const onStage = p.id === activeId;
           // Clicar em quem transmite joga a tela dessa pessoa no palco.
           const clickable = p.isSharing;
 
@@ -61,7 +91,7 @@ export default function ParticipantList({
               className={[
                 'participant',
                 clickable ? 'participant--clickable' : '',
-                p.id === activeId ? 'participant--active' : '',
+                onStage ? 'participant--active' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -75,22 +105,18 @@ export default function ParticipantList({
                   {isSelf && <span className="tag">você</span>}
                 </span>
 
-                <span
-                  className={`peer-state peer-state--${
-                    p.isSharing ? 'live' : peerTone(state)
-                  }`}
-                >
-                  {p.isSharing
-                    ? 'Transmitindo'
-                    : isSelf
-                      ? 'Você'
-                      : `${state ? PEER_LABEL[state] : 'Aguardando…'}${
-                          channelsOpen.includes(p.id) ? ' · canal ok' : ''
-                        }`}
+                <span className={`peer-state peer-state--${statusTone(p, isSelf, state)}`}>
+                  {statusLabel(p, isSelf, state, onStage, channelsOpen.includes(p.id))}
                 </span>
               </span>
 
-              {p.isSharing && <span className="live-dot" title="Transmitindo" />}
+              {onStage ? (
+                <span className="watching-badge" title="Você está vendo esta transmissão">
+                  ▶
+                </span>
+              ) : (
+                p.isSharing && <span className="live-dot" title="Transmitindo" />
+              )}
             </li>
           );
         })}
@@ -99,7 +125,8 @@ export default function ParticipantList({
       {/* Conta o que está na tela: o aviso nunca contradiz as miniaturas. */}
       {liveCount > 1 && (
         <p className="sidebar__note">
-          {liveCount} transmissões ao vivo — clique para trocar o vídeo principal.
+          {liveCount} transmissões ao vivo. O ▶ marca a que você está vendo — clique em
+          outra para trocar.
         </p>
       )}
     </aside>

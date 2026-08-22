@@ -75,8 +75,20 @@ export default function VideoStage({
 
           <div className="video-frame__bar">
             <span className="video-frame__label">
-              {active.isLocal && <span className="live-dot" />}
-              {active.isLocal ? 'Sua tela (preview)' : `${active.name} está transmitindo`}
+              <span className="live-dot" />
+              {active.isLocal ? (
+                'Sua tela (preview)'
+              ) : (
+                <>
+                  <span className="video-frame__watching">Assistindo</span>
+                  <strong className="video-frame__who">{active.name}</strong>
+                </>
+              )}
+              {broadcasts.length > 1 && (
+                <span className="video-frame__count">
+                  · 1 de {broadcasts.length} transmissões
+                </span>
+              )}
             </span>
             <button className="btn btn--tiny" onClick={toggleFullscreen}>
               {fullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
