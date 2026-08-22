@@ -20,9 +20,8 @@ win:
         - x64
   artifactName: ScreenShare-${version}-portable.exe
 
-portable:
-  # Nome fixo da janela do unpacker, evita conflito entre execuções.
-  unpackDirName: ScreenShare
+# Sem unpackDirName: o padrao gera um nome unico por build. Fixar o nome
+# quebra o lancador quando ja existe outra versao descompactada no TEMP.
 
 # Sem assinatura: é um MVP entre amigos. O SmartScreen vai avisar.
 forceCodeSigning: false
