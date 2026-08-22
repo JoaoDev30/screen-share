@@ -170,10 +170,8 @@ netsh advfirewall firewall add rule name="ScreenShare" dir=in action=allow proto
 Esta build está na ETAPA 4. Ainda **não tem**:
 
 - áudio (nem do sistema, nem microfone) — ETAPA 6
-- miniaturas de várias transmissões ao mesmo tempo — ETAPA 5
-
-Uma transmissão por vez funciona bem; se duas pessoas compartilharem, só a primeira
-aparece no palco.
+Várias transmissões simultâneas já funcionam: aparecem miniaturas e clicar troca o
+vídeo principal.
 
 A transmissão é P2P direta e só há STUN configurado. Em algumas operadoras (NAT
 simétrico, CGNAT) o P2P não fecha e seria preciso um servidor TURN, que este projeto
@@ -197,5 +195,5 @@ screen-share-app/
 - [x] ETAPA 2 — Socket.IO: criar/entrar/sair de sala, lista de participantes
 - [x] ETAPA 3 — WebRTC: SDP, ICE, conexão P2P
 - [x] ETAPA 4 — compartilhamento de tela (getDisplayMedia) e recepção do stream
-- [ ] ETAPA 5 — interface: participantes, miniaturas, fullscreen, animações
+- [x] ETAPA 5 — interface: participantes, miniaturas, fullscreen, animações
 - [ ] ETAPA 6 — áudio da tela + microfone, bitrate e FPS

@@ -18,3 +18,8 @@ export const socket: AppSocket = io(SERVER_URL, {
 export function connectSocket(): void {
   if (!socket.connected) socket.connect();
 }
+
+// Handle de depuração no dev, junto com o __peers do webrtc.ts.
+if (import.meta.env.DEV) {
+  (window as unknown as Record<string, unknown>).__socket = socket;
+}
