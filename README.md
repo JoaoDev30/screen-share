@@ -78,16 +78,35 @@ dois computadores. O tráfego pesado vai direto de um para o outro (P2P).
 
 ### 1. Suba o código para o GitHub
 
-O repositório já está iniciado e commitado. Crie um repositório vazio em
-github.com/new (pode ser privado) e:
+O repositório local já está iniciado, commitado e no branch `main`.
+
+Crie o repositório em [github.com/new](https://github.com/new). Pode ser privado, mas
+**deixe-o completamente vazio**: não marque "Add a README", nem `.gitignore`, nem
+licença. Se o GitHub criar qualquer arquivo, o push é recusado com
+`Updates were rejected because the remote contains work that you do not have locally`.
+
+Depois aponte o remote (pule se já tiver feito — dá `remote origin already exists`):
 
 ```
 git remote add origin https://github.com/SEU-USUARIO/screen-share-app.git
 ```
 
+E envie:
+
 ```
 git push -u origin main
 ```
+
+Se aparecer uma janela do navegador pedindo login do GitHub, é o Git Credential
+Manager. Autorize e o push continua sozinho.
+
+**Erros comuns aqui:**
+
+| Mensagem | O que houve |
+| --- | --- |
+| `src refspec main does not match any` | O branch local é `master`. Corrija com `git branch -M main`. |
+| `Repository not found` | O repositório não existe no GitHub ainda, ou o nome está diferente. |
+| `Updates were rejected` | O repositório foi criado com README. Use `git pull --rebase origin main` e envie de novo. |
 
 ### 2. Deploy no Render
 
